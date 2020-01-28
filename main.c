@@ -11,12 +11,26 @@ typedef struct {
     size_t input_length;
 } InputBuffer;
 
+// database statement status
+typedef enum { PREPARE_SUCCESS, PREPARE_UNRECOGNIZED_STATEMENT } PrepareResult;
+// database statement types
+typedef enum { STATEMENT_INSERT, STATEMENT_SELECT } StatementType;
+
+// Database statement
+typedef struct {
+    StatementType type;
+} Statement;
+
 InputBuffer* new_input_buffer();    // Constructor for a new input buffer
 void print_prompt();                // Prints the REPL input line
 void read_input(InputBuffer*);      // Reads the user input from the REPL
 void close_input_buffer(InputBuffer*);   // Ends the input buffer once the user has entered some values
+PrepareResult prepare_statement(InputBuffer*, Statement*);
+void execute_statement(Statement*);
 
-int main() {
+int main(int argc, char* argv[]) {
+    // TODO: Add command line arguments here with argv[]
+
     InputBuffer* input_buffer = new_input_buffer();
     while(true) {
         print_prompt();
@@ -26,7 +40,23 @@ int main() {
             close_input_buffer(input_buffer);
             exit(EXIT_SUCCESS);
         } else {
-            printf("Unrecognized command '%s'.\n", input_buffer->stream);
+            // Determine if the input is a system command or a database operation
+            // System commands will start with a .
+            if (input_buffer->stream[0] == '.') {
+                printf("Do system command here.\n");
+            } else {
+                // Parser logic to determine what command was input
+                Statement statement;
+                switch(prepare_statement(input_buffer, &statement)){
+                    case PREPARE_SUCCESS:
+                        execute_statement(&statement);
+                        break;
+                    case PREPARE_UNRECOGNIZED_STATEMENT:
+                    default:
+                        printf("Unrecognized command '%s'.\n", input_buffer->stream);
+                        break;
+                }
+            }
         }
     }
 }
@@ -69,3 +99,31 @@ void close_input_buffer(InputBuffer* input_buffer) {
     free(input_buffer);
 }
 
+// Create a new statement based on the input buffer.
+PrepareResult prepare_statement(InputBuffer* input_buffer, Statement* statement){
+
+    // Check the statement types
+    if(strncmp(input_buffer->stream, "insert", 6) == 0) {
+        statement->type = STATEMENT_INSERT;
+        return PREPARE_SUCCESS;
+    }
+
+    // Check the statement types
+    if(strncmp(input_buffer->stream, "select", 6) == 0) {
+        statement->type = STATEMENT_SELECT;
+        return PREPARE_SUCCESS;
+    }
+
+    return PREPARE_UNRECOGNIZED_STATEMENT;
+}
+
+void execute_statement(Statement* statement) {
+    switch (statement->type) {
+        case (STATEMENT_INSERT):
+            printf("This is where we would do an insert.\n");
+            break;
+        case (STATEMENT_SELECT):
+            printf("This is where we would do a select.\n");
+            break;
+    }
+}
